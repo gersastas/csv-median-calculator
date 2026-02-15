@@ -13,6 +13,22 @@ endif()
 
 include(FetchContent)
 
+# =========================
+# Boost
+# =========================
+FetchContent_Declare(
+        Boost
+        URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+set(BOOST_INCLUDE_LIBRARIES program_options accumulators)
+set(BOOST_ENABLE_CMAKE ON)
+FetchContent_MakeAvailable(Boost)
+
+# =========================
+# toml++
+# =========================
 FetchContent_Declare(
         tomlplusplus
         GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
@@ -20,6 +36,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
+# =========================
+# spdlog
+# =========================
 FetchContent_Declare(
         spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -27,26 +46,53 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-FetchContent_Declare(
-        Boost
-        URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-set(BOOST_INCLUDE_LIBRARIES program_options accumulators)
-set(BOOST_ENABLE_CMAKE ON)
-FetchContent_MakeAvailable(Boost)
-
-add_executable(csv_median_calculator
-        src/main.cpp
+# ======================================================
+# CORE LIBRARY (общая логика проекта)
+# ======================================================
+add_library(core
         src/config_parser.cpp
         src/file_scanner.cpp
         src/csv_reader.cpp
         src/median_calculator.cpp
 )
 
-target_link_libraries(csv_median_calculator PRIVATE
+target_include_directories(core PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(core PUBLIC
         Boost::program_options
         Boost::accumulators
         tomlplusplus::tomlplusplus
         spdlog::spdlog
 )
+
+# ======================================================
+# MAIN EXECUTABLE
+# ======================================================
+add_executable(csv_median_calculator
+        src/main.cpp
+)
+
+target_link_libraries(csv_median_calculator PRIVATE core)
+
+# Copy config to build folder
+configure_file(config.toml ${CMAKE_BINARY_DIR}/config.toml COPYONLY)
+
+# ======================================================
+# TESTS (optional)
+# ======================================================
+option(BUILD_TESTS "Build tests" OFF)
+
+if(BUILD_TESTS)
+    enable_testing()
+
+    FetchContent_Declare(
+            Catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG v3.5.0
+    )
+    FetchContent_MakeAvailable(Catch2)
+
+    add_subdirectory(tests)
+endif()
