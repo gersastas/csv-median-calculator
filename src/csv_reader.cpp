@@ -148,4 +148,64 @@ std::optional<price_record> csv_reader::parse_line(
     }
 }
 
+std::vector<std::string> csv_reader::split(const std::string& str_,
+                                           char delimiter_) {
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end = str_.find(delimiter_);
+
+    while (end != std::string::npos) {
+        tokens.push_back(str_.substr(start, end - start));
+        start = end + 1;
+        end = str_.find(delimiter_, start);
+    }
+
+    tokens.push_back(str_.substr(start));
+    return tokens;
+}
+
+template<typename T>
+std::optional<T> csv_reader::safe_parse(const std::string& str_) {
+    /**
+     * @details Для целых чисел используется std::from_chars (C++17) —
+     * самый быстрый и безалокационный способ парсинга в стандартной библиотеке.
+     * Для плавающей точки используется std::stod с предварительной очисткой от пробелов.
+     */
+
+    T value;
+    size_t start = str_.find_first_not_of(" \t\r\n");
+    size_t end = str_.find_last_not_of(" \t\r\n");
+
+    if (start == std::string::npos) {
+        return std::nullopt;
+    }
+
+    std::string trimmed = str_.substr(start, end - start + 1);
+
+    if constexpr (std::is_floating_point_v<T>) {
+        try {
+            return static_cast<T>(std::stod(trimmed));
+        } catch (...) {
+            return std::nullopt;
+        }
+    } else if constexpr (std::is_integral_v<T>) {
+        auto [ptr, ec] = std::from_chars(
+            trimmed.data(),
+            trimmed.data() + trimmed.size(),
+            value
+        );
+        if (ec == std::errc{}) {
+            return value;
+        }
+    }
+
+    return std::nullopt;
+}
+
+// Явная инстанциация шаблонов
+template std::optional<uint64_t> csv_reader::safe_parse<uint64_t>(
+    const std::string&);
+template std::optional<double> csv_reader::safe_parse<double>(
+    const std::string&);
+
 }  // namespace csv_median_calc
