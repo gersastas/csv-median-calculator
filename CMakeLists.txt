@@ -50,8 +50,3 @@ target_link_libraries(csv_median_calculator PRIVATE
         tomlplusplus::tomlplusplus
         spdlog::spdlog
 )
-
-add_executable(data_generator
-        src/data_generator.cpp)
-target_link_libraries(data_generator PRIVATE
-        spdlog::spdlog)
