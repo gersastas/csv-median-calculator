@@ -4,6 +4,8 @@
  */
 
 #include "file_scanner.hpp"
+
+#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <filesystem>
 #include <ranges>

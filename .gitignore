@@ -28,3 +28,8 @@ out/
 # =======================================
 .DS_Store
 Thumbs.db
+
+/output/
+examples/output/
+*.csv
+!examples/input/*.csv
