@@ -102,7 +102,75 @@ std::optional<std::filesystem::path> parse_arguments(int argc_,
 /**
  * \brief Основная функция приложения.
  */
+int main(int argc, char* argv[]) {
+    setup_logging();
+    spdlog::info("Запуск приложения csv_median_calculator v1.0.0");
 
-int main() {
-    std::cout << "CSV Median Calculator" << std::endl;
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    // 1. Парсинг аргументов
+    auto config_path = parse_arguments(argc, argv);
+    // Если путь не возвращен (help или ошибка), завершаем работу.
+    // Код возврата 0 для help, 1 для ошибки.
+    if (!config_path) {
+        return (argc > 1 && std::string(argv[1]) == "--help") ? 0 : 1;
+    }
+
+    try {
+        // 2. Загрузка конфигурации
+        // Используем snake_case имена классов из refactored headers
+        auto config =
+            csv_median_calc::config_parser::parse(*config_path);
+
+        // 3. Поиск файлов
+        auto csv_files = csv_median_calc::file_scanner::scan_csv_files(
+            config.input_dir, config.filename_masks);
+
+        if (csv_files.empty()) {
+            spdlog::error("Не найдено CSV файлов по заданным критериям");
+            return 1;
+        }
+
+        // 4. Чтение и объединение данных
+        spdlog::info("Чтение и сортировка данных...");
+        auto records =
+            csv_median_calc::csv_reader::read_and_merge(csv_files);
+
+        if (records.empty()) {
+            spdlog::error("Не удалось прочитать данные из файлов");
+            return 1;
+        }
+        spdlog::info("Прочитано записей: {}", records.size());
+
+        // 5. Расчет медианы
+        spdlog::info("Расчет медианы...");
+        // Методы статические, создание объекта не требуется
+        auto results =
+            csv_median_calc::median_calculator::calculate(records);
+
+        // 6. Сохранение результатов
+        auto output_file = config.output_dir / "median_result.csv";
+
+        if (!csv_median_calc::median_calculator::save_results(
+                results, output_file)) {
+            return 1;
+        }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                end_time - start_time)
+                .count();
+
+        spdlog::info("Записано изменений медианы: {}", results.size());
+        spdlog::info("Результат сохранен: {}", output_file.string());
+        spdlog::info("Время выполнения: {} мс", duration);
+        spdlog::info("Завершение работы");
+
+        return 0;
+
+    } catch (const std::exception& e) {
+        spdlog::error("Критическая ошибка: {}", e.what());
+        return 1;
+    }
 }
