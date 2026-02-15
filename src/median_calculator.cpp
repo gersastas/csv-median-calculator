@@ -143,4 +143,38 @@ std::vector<median_result> median_calculator::calculate(
     return results;
 }
 
+bool median_calculator::save_results(
+    const std::vector<median_result>& results_,
+    const std::filesystem::path& output_path_) {
+
+    try {
+        std::ofstream file(output_path_);
+
+        if (!file.is_open()) {
+            spdlog::error("Не удалось создать выходной файл: {}",
+                          output_path_.string());
+            return false;
+        }
+
+        file << "receive_ts;price_median\n";
+
+        for (const auto& result : results_) {
+            // Использование std::format для C++23
+            file << std::format("{};{:.8f}\n", result._receive_ts,
+                                result._median);
+        }
+
+        file.close();
+
+        spdlog::info("Результаты сохранены в файл: {}", output_path_.string());
+        spdlog::info("Записано строк: {}", results_.size());
+
+        return true;
+
+    } catch (const std::exception& e) {
+        spdlog::error("Ошибка при сохранении результатов: {}", e.what());
+        return false;
+    }
+}
+
 }  // namespace csv_median_calc
