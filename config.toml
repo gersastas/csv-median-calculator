@@ -2,3 +2,7 @@
 input = './examples/input'
 output = './examples/output'
 filename_mask = ['trade']
+
+[performance]
+parallel = true
+num_threads = 8

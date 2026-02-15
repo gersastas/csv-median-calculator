@@ -6,6 +6,7 @@
 #include "file_scanner.hpp"
 
 #include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <filesystem>
 #include <ranges>
@@ -43,6 +44,9 @@ std::vector<std::filesystem::path> file_scanner::scan_csv_files(
         std::ranges::sort(csv_files);
 
         spdlog::info("Найдено файлов для обработки: {}", csv_files.size());
+        for (const auto& file : csv_files) {
+            spdlog::info("  - {}", file.filename().string());
+        }
         return csv_files;
 
     } catch (const std::filesystem::filesystem_error& e) {

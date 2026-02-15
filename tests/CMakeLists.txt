@@ -3,6 +3,7 @@ add_executable(unit_tests
         test_median_calculator.cpp
         test_config_parser.cpp
         test_csv_reader.cpp
+        test_parallel.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE

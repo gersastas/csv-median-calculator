@@ -47,7 +47,6 @@ public:
     static std::vector<price_record> read_and_merge(
         const std::vector<std::filesystem::path>& file_paths_);
 
-private:
     /**
      * \brief Читает и парсит один CSV-файл.
      *
@@ -67,6 +66,8 @@ private:
      * \param line_number_ Номер строки (для логирования ошибок).
      * \return std::optional с записью или nullopt в случае ошибки парсинга.
      */
+
+private:
     static std::optional<price_record> parse_line(
         const std::string& line_,
         const std::filesystem::path& file_path_,

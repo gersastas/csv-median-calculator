@@ -54,6 +54,7 @@ add_library(core
         src/file_scanner.cpp
         src/csv_reader.cpp
         src/median_calculator.cpp
+        src/parallel_processor.cpp
 )
 
 target_include_directories(core PUBLIC

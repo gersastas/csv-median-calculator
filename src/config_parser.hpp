@@ -18,6 +18,11 @@ namespace csv_median_calc {
         std::filesystem::path input_dir;
         std::filesystem::path output_dir;
         std::vector<std::string> filename_masks;
+        // ======================================
+        // Бонус 7.1: Настройки многопоточности
+        // ======================================
+        bool parallel_enabled{false};
+        size_t num_threads{4};
     };
 
     /**
