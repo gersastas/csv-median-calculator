@@ -55,6 +55,7 @@ add_library(core
         src/csv_reader.cpp
         src/median_calculator.cpp
         src/parallel_processor.cpp
+        src/metrics_calculator.cpp
 )
 
 target_include_directories(core PUBLIC

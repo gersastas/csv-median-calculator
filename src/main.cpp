@@ -12,6 +12,7 @@
 #include "median_calculator.hpp"
 
 #include "parallel_processor.hpp"
+#include "metrics_calculator.hpp"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -152,13 +153,42 @@ int main(int argc, char* argv[]) {
         spdlog::info("Расчёт медианы...");
         auto results = csv_median_calc::median_calculator::calculate(records);
 
-	// ========================================
-        // 6. Сохранение результатов
-	// ========================================
+	    // ========================================
+	    // 6. Сохранение результатов
+	    // ========================================
         auto output_file = config.output_dir / "median_result.csv";
 
         if (!csv_median_calc::median_calculator::save_results(results, output_file)) {
             return 1;
+        }
+
+        spdlog::info("Базовый результат сохранен: {}", output_file.string());
+
+        // ========================================
+        // 6. БОНУС 7.2: Расчёт дополнительных метрик
+        // ========================================
+        if (config.metrics_enabled && !config.metrics_types.empty()) {
+            spdlog::info("Расчёт дополнительных метрик...");
+
+            // Конвертация строк конфига в enum
+            std::vector<csv_median_calc::metric_type> requested_metrics;
+            for (const auto& str_type : config.metrics_types) {
+                if (str_type == "median") requested_metrics.push_back(csv_median_calc::metric_type::median);
+                else if (str_type == "mean") requested_metrics.push_back(csv_median_calc::metric_type::mean);
+                else if (str_type == "std_dev") requested_metrics.push_back(csv_median_calc::metric_type::std_dev);
+                else if (str_type == "p50") requested_metrics.push_back(csv_median_calc::metric_type::p50);
+                else if (str_type == "p90") requested_metrics.push_back(csv_median_calc::metric_type::p90);
+                else if (str_type == "p95") requested_metrics.push_back(csv_median_calc::metric_type::p95);
+                else if (str_type == "p99") requested_metrics.push_back(csv_median_calc::metric_type::p99);
+            }
+
+            auto metrics_results = csv_median_calc::metrics_calculator::calculate(records, requested_metrics);
+            auto metrics_file = config.output_dir / "metrics_result.csv";
+
+            if (!csv_median_calc::metrics_calculator::save_results(metrics_results, metrics_file, requested_metrics)) {
+                spdlog::error("Ошибка сохранения метрик");
+                // Не падаем, так как основной результат уже сохранен
+            }
         }
 
         auto end_time = std::chrono::high_resolution_clock::now();
