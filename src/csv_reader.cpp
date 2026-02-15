@@ -15,18 +15,6 @@
 #include <string>
 #include <vector>
 
-#include "csv_reader.hpp"
-
-#include <spdlog/spdlog.h>
-
-#include <algorithm>
-#include <charconv>
-#include <filesystem>
-#include <fstream>
-#include <ranges>
-#include <string>
-#include <vector>
-
 namespace csv_median_calc {
 
 std::vector<price_record> csv_reader::read_and_merge(
@@ -52,6 +40,40 @@ std::vector<price_record> csv_reader::read_and_merge(
                  all_records.size());
 
     return all_records;
+}
+
+std::vector<price_record> csv_reader::read_single_file(
+    const std::filesystem::path& file_path_) {
+
+    std::vector<price_record> records;
+    std::ifstream file(file_path_);
+
+    if (!file.is_open()) {
+        spdlog::error("Не удалось открыть файл: {}", file_path_.string());
+        return records;
+    }
+
+    std::string line;
+    // Пропускаем заголовок файла
+    std::getline(file, line);
+
+    size_t line_number = 1;
+    while (std::getline(file, line)) {
+        ++line_number;
+        if (line.empty()) {
+            continue;
+        }
+
+        auto record = parse_line(line, file_path_, line_number);
+        if (record) {
+            records.push_back(*record);
+        }
+    }
+
+    spdlog::info("Из файла {} прочитано {} записей",
+                 file_path_.filename().string(), records.size());
+
+    return records;
 }
     
 }  // namespace csv_median_calc
