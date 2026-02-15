@@ -1,5 +1,5 @@
 # =======================================
-# Build directories
+# Build and outputs directories
 # =======================================
 build/
 cmake-build-*/
@@ -15,7 +15,7 @@ out/
 *~
 
 # =======================================
-# Executable and object files
+# Executable and temporary object files
 # =======================================
 *.o
 *.obj
