@@ -75,5 +75,77 @@ std::vector<price_record> csv_reader::read_single_file(
 
     return records;
 }
-    
+
+std::optional<price_record> csv_reader::parse_line(
+    const std::string& line_,
+    const std::filesystem::path& file_path_,
+    size_t line_number_) {
+
+    try {
+        auto fields = split(line_, ';');
+
+        /// @warning Пропускаем строки, где полей меньше критического минимума (5).
+        if (fields.size() < 5) {
+            spdlog::debug("Файл {}, строка {}: недостаточно полей ({})",
+                          file_path_.filename().string(), line_number_,
+                          fields.size());
+            return std::nullopt;
+        }
+
+        price_record record;
+
+        auto receive_ts = safe_parse<uint64_t>(fields[0]);
+        if (!receive_ts) {
+            spdlog::debug("Файл {}, строка {}: некорректный receive_ts",
+                          file_path_.filename().string(), line_number_);
+            return std::nullopt;
+        }
+        record.receive_ts = *receive_ts;
+
+        if (fields.size() > 1) {
+            auto exchange_ts = safe_parse<uint64_t>(fields[1]);
+            record.exchange_ts = exchange_ts.value_or(0);
+        }
+
+        // Парсинг price (обязательное поле)
+        if (fields.size() > 2) {
+            auto price = safe_parse<double>(fields[2]);
+            if (!price || *price <= 0.0) {
+                spdlog::debug("Файл {}, строка {}: некорректная цена '{}'",
+                              file_path_.filename().string(), line_number_,
+                              fields[2]);
+                return std::nullopt;
+            }
+            record.price = *price;
+        } else {
+            return std::nullopt;
+        }
+
+        // Парсинг quantity
+        if (fields.size() > 3) {
+            auto quantity = safe_parse<double>(fields[3]);
+            record.quantity = quantity.value_or(0.0);
+        }
+
+        // Парсинг side (bid/ask)
+        if (fields.size() > 4) {
+            record.side = fields[4];
+        }
+
+        // Парсинг rebuild (флаг есть только в level.csv)
+        if (fields.size() > 5) {
+            auto rebuild = safe_parse<int>(fields[5]);
+            record.rebuild = rebuild.value_or(0);
+        }
+
+        return record;
+
+    } catch (const std::exception& e) {
+        /// @note Ловим исключения парсинга (например, stod), чтобы не прерывать чтение файла.
+        spdlog::debug("Файл {}, строка {}: ошибка парсинга - {}",
+                      file_path_.filename().string(), line_number_, e.what());
+        return std::nullopt;
+    }
+}
+
 }  // namespace csv_median_calc
