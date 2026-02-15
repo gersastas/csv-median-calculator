@@ -4,5 +4,5 @@ output = './examples/output'
 filename_mask = ['trade']
 
 [performance]
-parallel = false
+parallel = true
 num_threads = 8
