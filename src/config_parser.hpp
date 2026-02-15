@@ -23,6 +23,12 @@ namespace csv_median_calc {
         // ======================================
         bool parallel_enabled{false};
         size_t num_threads{4};
+
+        //  ============================
+        // Бонус 7.2
+        // =============================
+        bool metrics_enabled{false};
+        std::vector<std::string> metrics_types; // Список строк: "mean", "std_dev" и т.д.
     };
 
     /**

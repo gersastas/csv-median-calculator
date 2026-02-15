@@ -6,3 +6,7 @@ filename_mask = ['trade']
 [performance]
 parallel = true
 num_threads = 8
+
+[metrics]
+enabled = true
+types = ['median', 'mean', 'p95', 'p99']

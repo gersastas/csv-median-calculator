@@ -55,6 +55,20 @@ config config_parser::parse(const std::filesystem::path& config_path_) {
     } else {
         cfg.parallel_enabled = false;
     }
+
+    //==================================
+    // БОНУС 7.2: Чтение секции metrics
+    //==================================
+    if (auto metrics = table["metrics"]) {
+        cfg.metrics_enabled = metrics["enabled"].value_or(false);
+
+        if (auto types = metrics["types"].as_array()) {
+            for (auto&& t : *types) {
+                cfg.metrics_types.push_back(t.value_or(""));
+            }
+        }
+    }
+
     validate_config(cfg);
 
     spdlog::info("Конфигурация загружена");
