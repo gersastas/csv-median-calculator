@@ -43,11 +43,25 @@ config config_parser::parse(const std::filesystem::path& config_path_) {
         }
     }
 
+    //============================================
+    // БОНУС 7.1: Чтение секции performance
+    //===========================================
+    if (auto perf = table["performance"]) {
+        cfg.parallel_enabled = perf["parallel"].value_or(false);
+        // По умолчанию берем кол-во ядер, если не указано
+        cfg.num_threads = perf["num_threads"].value_or(
+            std::thread::hardware_concurrency()
+        );
+    } else {
+        cfg.parallel_enabled = false;
+    }
     validate_config(cfg);
 
     spdlog::info("Конфигурация загружена");
     spdlog::info("Входная директория: {}", cfg.input_dir.string());
     spdlog::info("Выходная директория: {}", cfg.output_dir.string());
+    spdlog::info("Параллельная обработка: {}",
+                 cfg.parallel_enabled ? "ВКЛ" : "ВЫКЛ");
 
     return cfg;
 }

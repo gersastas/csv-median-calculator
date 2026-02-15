@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <charconv>
 #include <filesystem>
+#include <future>
 #include <fstream>
 #include <ranges>
 #include <string>
@@ -22,16 +23,30 @@ std::vector<price_record> csv_reader::read_and_merge(
 
     std::vector<price_record> all_records;
 
+    // --- БОНУС 7.1: Многопоточное чтение ---
+    // Используем std::async для запуска чтения каждого файла в отдельном потоке.
+    std::vector<std::future<std::vector<price_record>>> futures;
+    futures.reserve(file_paths_.size());
+
     for (const auto& path : file_paths_) {
-        auto records = read_single_file(path);
-        /** @note Используем move-итераторы для эффективного переноса данных
-         *  из временного вектора файла в общий пул без лишнего копирования строк. */
+        // Запускаем задачу асинхронно (std::launch::async)
+        futures.push_back(std::async(std::launch::async, [&path]() {
+            return read_single_file(path);
+        }));
+    }
+
+    // Собираем результаты из всех потоков
+    for (auto& fut : futures) {
+        // get() заблокирует выполнение, пока поток не завершится
+        auto records = fut.get();
+
+        // Используем move-итераторы для избежания копирований
         all_records.insert(all_records.end(),
                            std::make_move_iterator(records.begin()),
                            std::make_move_iterator(records.end()));
     }
 
-    /// @details Сортировка по возрастанию временной метки получения (receive_ts).
+    // Сортировка происходит в главном потоке после сбора всех данных
     std::ranges::sort(all_records, [](const auto& a, const auto& b) {
         return a.receive_ts < b.receive_ts;
     });

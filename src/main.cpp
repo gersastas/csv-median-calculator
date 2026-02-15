@@ -1,12 +1,4 @@
 /**
-* \file main.cpp
- * \brief Точка входа в приложение csv_median_calculator.
- */
-
-#include <iostream>
-
-
-/**
  * \file main.cpp
  * \brief Точка входа в приложение csv_median_calculator.
  *
@@ -18,6 +10,8 @@
 #include "csv_reader.hpp"
 #include "file_scanner.hpp"
 #include "median_calculator.hpp"
+
+#include "parallel_processor.hpp"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -41,7 +35,6 @@ void setup_logging() {
     auto console_sink =
         std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto logger = std::make_shared<spdlog::logger>("main", console_sink);
-
     spdlog::set_default_logger(logger);
     spdlog::set_level(spdlog::level::info);
     // Формат: [Дата Время] [Уровень] Сообщение
@@ -66,10 +59,8 @@ std::optional<std::filesystem::path> parse_arguments(int argc_,
         // Добавляем поддерживаемые ключи согласно ТЗ
         desc.add_options()
             ("help,h", "Показать справку")
-            ("config,c", po::value<std::string>(),
-             "Путь к файлу конфигурации")
-            ("cfg", po::value<std::string>(),
-             "Путь к файлу конфигурации (алиас)");
+            ("config,c", po::value<std::string>(), "Путь к файлу конфигурации")
+            ("cfg", po::value<std::string>(), "Путь к файлу конфигурации (алиас)");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc_, argv_, desc), vm);
@@ -119,22 +110,37 @@ int main(int argc, char* argv[]) {
     try {
         // 2. Загрузка конфигурации
         // Используем snake_case имена классов из refactored headers
-        auto config =
-            csv_median_calc::config_parser::parse(*config_path);
+        auto config = csv_median_calc::config_parser::parse(*config_path);
 
         // 3. Поиск файлов
-        auto csv_files = csv_median_calc::file_scanner::scan_csv_files(
-            config.input_dir, config.filename_masks);
+        auto csv_files = csv_median_calc::file_scanner::scan_csv_files(config.input_dir, config.filename_masks);
 
         if (csv_files.empty()) {
             spdlog::error("Не найдено CSV файлов по заданным критериям");
             return 1;
         }
 
-        // 4. Чтение и объединение данных
-        spdlog::info("Чтение и сортировка данных...");
-        auto records =
-            csv_median_calc::csv_reader::read_and_merge(csv_files);
+        // ========================================
+        // 4. Чтение данных (с выбором режима)
+        // ========================================
+        std::vector<csv_median_calc::price_record> records;
+
+        if (config.parallel_enabled) {
+            // БОНУС 7.1: Параллельная обработка
+            spdlog::info("Используется параллельная обработка");
+            records = csv_median_calc::parallel_processor::process_parallel(
+                csv_files, 
+                config.num_threads
+            );
+
+            auto stats = csv_median_calc::parallel_processor::get_last_statistics();
+            spdlog::info("Статистика: {} файлов за {} мс", 
+                        stats.files_processed, stats.duration.count());
+        } else {
+            // Обычная последовательная обработка
+            spdlog::info("Используется последовательная обработка");
+            records = csv_median_calc::csv_reader::read_and_merge(csv_files);
+        }
 
         if (records.empty()) {
             spdlog::error("Не удалось прочитать данные из файлов");
@@ -142,25 +148,22 @@ int main(int argc, char* argv[]) {
         }
         spdlog::info("Прочитано записей: {}", records.size());
 
-        // 5. Расчет медианы
-        spdlog::info("Расчет медианы...");
-        // Методы статические, создание объекта не требуется
-        auto results =
-            csv_median_calc::median_calculator::calculate(records);
+        // Базовый расчёт медианы (всегда выполняется)
+        spdlog::info("Расчёт медианы...");
+        auto results = csv_median_calc::median_calculator::calculate(records);
 
+	// ========================================
         // 6. Сохранение результатов
+	// ========================================
         auto output_file = config.output_dir / "median_result.csv";
 
-        if (!csv_median_calc::median_calculator::save_results(
-                results, output_file)) {
+        if (!csv_median_calc::median_calculator::save_results(results, output_file)) {
             return 1;
         }
 
         auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                end_time - start_time)
-                .count();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            end_time - start_time).count();
 
         spdlog::info("Записано изменений медианы: {}", results.size());
         spdlog::info("Результат сохранен: {}", output_file.string());
