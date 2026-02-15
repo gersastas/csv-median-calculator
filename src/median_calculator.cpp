@@ -97,4 +97,50 @@ private:
     }
 };
 
+std::vector<median_result> median_calculator::calculate(
+    const std::vector<price_record>& records_) {
+
+    if (records_.empty()) {
+        return {};
+    }
+
+    std::vector<median_result> results;
+    results.reserve(records_.size() / 10);
+
+    // Используем Boost.Accumulators для сбора статистики (mean, count)
+    // согласно требованию ТЗ о владении библиотекой.
+    using namespace boost::accumulators;
+    accumulator_set<double, stats<tag::mean, tag::count>> acc;
+
+    // Точная медиана через custom two-heap алгоритм
+    incremental_median median_calc;
+    double previous_median = -1.0;
+
+    for (const auto& record : records_) {
+        // Добавляем значение в аккумулятор (для статистики)
+        acc(record.price);
+
+        // Добавляем значение в калькулятор медианы
+        median_calc.add_value(record.price);
+
+        double current_median = median_calc.get_median();
+
+        // Фиксируем результат только при изменении медианы.
+        // Используем эпсилон для сравнения double.
+        constexpr double epsilon = 1e-10;
+        if (std::abs(current_median - previous_median) > epsilon) {
+            results.push_back({._receive_ts = record.receive_ts,
+                               ._median = current_median});
+            previous_median = current_median;
+        }
+    }
+
+    // Логирование итоговой статистики
+    spdlog::info("Рассчитано изменений медианы: {}", results.size());
+    spdlog::info("Средняя цена (Boost.Accumulators): {:.2f}", mean(acc));
+    spdlog::info("Всего обработано значений: {}", count(acc));
+
+    return results;
+}
+
 }  // namespace csv_median_calc
