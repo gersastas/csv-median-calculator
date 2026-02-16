@@ -56,6 +56,7 @@ add_library(core
         src/median_calculator.cpp
         src/parallel_processor.cpp
         src/metrics_calculator.cpp
+        src/streaming_processor.cpp
 )
 
 target_include_directories(core PUBLIC

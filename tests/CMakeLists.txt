@@ -4,6 +4,8 @@ add_executable(unit_tests
         test_config_parser.cpp
         test_csv_reader.cpp
         test_parallel.cpp
+        test_metrics_calculator.cpp
+        test_streaming.cpp
 )
 
 target_link_libraries(unit_tests PRIVATE

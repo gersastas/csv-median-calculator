@@ -4,6 +4,7 @@
  */
 
 #include "config_parser.hpp"
+#include "streaming_processor.hpp"
 
 #include <toml++/toml.h>
 #include <spdlog/spdlog.h>
@@ -67,6 +68,19 @@ config config_parser::parse(const std::filesystem::path& config_path_) {
                 cfg.metrics_types.push_back(t.value_or(""));
             }
         }
+    }
+
+	//=====================================================
+    // БОНУС 7.3: Потоковая обработка
+   //================================
+    if (auto stream = table["streaming"]) {
+        cfg.streaming_enabled = stream["enabled"].value_or(false);
+    }
+
+    // Логика совместимости: streaming отключает parallel
+    if (cfg.streaming_enabled && cfg.parallel_enabled) {
+        spdlog::warn("Streaming mode enabled: parallel processing disabled for stability.");
+        cfg.parallel_enabled = false;
     }
 
     validate_config(cfg);
