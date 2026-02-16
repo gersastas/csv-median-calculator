@@ -67,15 +67,9 @@ public:
      * \return std::optional с записью или nullopt в случае ошибки парсинга.
      */
 
-private:
-    static std::optional<price_record> parse_line(
-        const std::string& line_,
-        const std::filesystem::path& file_path_,
-        size_t line_number_);
-
     /**
-     * \brief Разделяет строку по разделителю.
-     */
+         * \brief Разделяет строку по разделителю.
+         */
     static std::vector<std::string> split(const std::string& str_,
                                           char delimiter_);
 
@@ -84,6 +78,12 @@ private:
      */
     template<typename T>
     static std::optional<T> safe_parse(const std::string& str_);
+
+private:
+    static std::optional<price_record> parse_line(
+        const std::string& line_,
+        const std::filesystem::path& file_path_,
+        size_t line_number_);
 };
 
 }  // namespace csv_median_calc

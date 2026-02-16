@@ -8,5 +8,9 @@ parallel = true
 num_threads = 8
 
 [metrics]
-enabled = true
+enabled = false
 types = ['median', 'mean', 'p95', 'p99']
+
+[streaming]
+enabled = false
+buffer_size = 2097152
